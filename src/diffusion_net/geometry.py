@@ -169,7 +169,6 @@ def build_tangent_frames(verts, faces, normals=None):
     basisX = normalize(basisX)
     basisY = cross(vert_normals, basisX)
     frames = torch.stack((basisX, basisY, vert_normals), dim=-2)
-    print(frames.shape)
     if torch.any(torch.isnan(frames)):
         raise ValueError("NaN coordinate frame! Must be very degenerate")
 
@@ -308,7 +307,6 @@ def compute_operators(verts, faces, k_eig, normals=None):
     verts_np = toNP(verts).astype(np.float64)
     faces_np = toNP(faces)
     frames = build_tangent_frames(verts, faces, normals=normals)
-    # print(frames)
     frames_np = toNP(frames)
 
     # Build the scalar Laplacian
@@ -328,8 +326,6 @@ def compute_operators(verts, faces, k_eig, normals=None):
         raise RuntimeError("NaN mass matrix")
 
     # Read off neighbors & rotations from the Laplacian
-    print("L")
-    print (L)
     L_coo = L.tocoo()
     print("L_coo")
     print (L_coo)
