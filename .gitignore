@@ -53,3 +53,8 @@ pyrightconfig.json
 *.exe
 *.out
 *.app
+
+# Everything from original repo
+/experiments
+/media
+/src

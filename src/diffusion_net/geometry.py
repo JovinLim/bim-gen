@@ -163,14 +163,13 @@ def build_tangent_frames(verts, faces, normals=None):
 
     basis_cand1 = torch.tensor([1, 0, 0]).to(device=device, dtype=dtype).expand(V, -1)
     basis_cand2 = torch.tensor([0, 1, 0]).to(device=device, dtype=dtype).expand(V, -1)
-    
     basisX = torch.where((torch.abs(dot(vert_normals, basis_cand1))
                           < 0.9).unsqueeze(-1), basis_cand1, basis_cand2)
     basisX = project_to_tangent(basisX, vert_normals)
     basisX = normalize(basisX)
     basisY = cross(vert_normals, basisX)
     frames = torch.stack((basisX, basisY, vert_normals), dim=-2)
-    
+    print(frames.shape)
     if torch.any(torch.isnan(frames)):
         raise ValueError("NaN coordinate frame! Must be very degenerate")
 
@@ -299,17 +298,17 @@ def compute_operators(verts, faces, k_eig, normals=None):
 
     Note: for a generalized eigenvalue problem, the mass matrix matters! The eigenvectors are only othrthonormal with respect to the mass matrix, like v^H M v, so the mass (given as the diagonal vector massvec) needs to be used in projections, etc.
     """
-
     device = verts.device
     dtype = verts.dtype
     V = verts.shape[0]
     is_cloud = faces.numel() == 0
-
+    
     eps = 1e-8
 
     verts_np = toNP(verts).astype(np.float64)
     faces_np = toNP(faces)
     frames = build_tangent_frames(verts, faces, normals=normals)
+    # print(frames)
     frames_np = toNP(frames)
 
     # Build the scalar Laplacian
@@ -329,7 +328,11 @@ def compute_operators(verts, faces, k_eig, normals=None):
         raise RuntimeError("NaN mass matrix")
 
     # Read off neighbors & rotations from the Laplacian
+    print("L")
+    print (L)
     L_coo = L.tocoo()
+    print("L_coo")
+    print (L_coo)
     inds_row = L_coo.row
     inds_col = L_coo.col
 
@@ -425,7 +428,7 @@ def get_all_operators(verts_list, faces_list, k_eig, op_cache_dir=None, normals=
 
 def get_operators(verts, faces, k_eig=128, op_cache_dir=None, normals=None, overwrite_cache=False):
     """
-    See documentation for compute_operators(). This essentailly just wraps a call to compute_operators, using a cache if possible.
+    See documentation for compute_operators(). This essentially just wraps a call to compute_operators, using a cache if possible.
     All arrays are always computed using double precision for stability, then truncated to single precision floats to store on disk, and finally returned as a tensor with dtype/device matching the `verts` input.
     """
 
@@ -532,7 +535,6 @@ def get_operators(verts, faces, k_eig=128, op_cache_dir=None, normals=None, over
                 break
 
     if not found:
-
         # No matching entry found; recompute.
         frames, mass, L, evals, evecs, gradX, gradY = compute_operators(verts, faces, k_eig, normals=normals)
 

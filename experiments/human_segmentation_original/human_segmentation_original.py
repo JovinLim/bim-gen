@@ -21,7 +21,8 @@ args = parser.parse_args()
 
 
 # system things
-device = torch.device('cuda:0')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 dtype = torch.float32
 
 # problem/dataset things
@@ -51,164 +52,166 @@ dataset_path = os.path.join(base_path, "data/sig17_seg_benchmark")
 
 # === Load datasets
 
-# Load the test dataset
-test_dataset = HumanSegOrigDataset(dataset_path, train=False, k_eig=k_eig, use_cache=True, op_cache_dir=op_cache_dir)
-test_loader = DataLoader(test_dataset, batch_size=None)
+# # Load the test dataset
+# test_dataset = HumanSegOrigDataset(dataset_path, train=False, k_eig=k_eig, use_cache=True, op_cache_dir=op_cache_dir)
+# test_loader = DataLoader(test_dataset, batch_size=None)
 
 # Load the train dataset
 if train:
-    train_dataset = HumanSegOrigDataset(dataset_path, train=True, k_eig=k_eig, use_cache=True, op_cache_dir=op_cache_dir)
+    # train_dataset = HumanSegOrigDataset(dataset_path, train=True, k_eig=k_eig, use_cache=True, op_cache_dir=op_cache_dir)
+    train_dataset = HumanSegOrigDataset(dataset_path, train=True, k_eig=k_eig, use_cache=False, op_cache_dir=None)
     train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 
 
-# === Create the model
+# # === Create the model
 
-C_in={'xyz':3, 'hks':16}[input_features] # dimension of input features
+# C_in={'xyz':3, 'hks':16}[input_features] # dimension of input features
 
-model = diffusion_net.layers.DiffusionNet(C_in=C_in,
-                                          C_out=n_class,
-                                          C_width=128, 
-                                          N_block=4, 
-                                          last_activation=lambda x : torch.nn.functional.log_softmax(x,dim=-1),
-                                          outputs_at='faces', 
-                                          dropout=True)
-
-
-model = model.to(device)
-
-if not train:
-    # load the pretrained model
-    print("Loading pretrained model from: " + str(pretrain_path))
-    model.load_state_dict(torch.load(pretrain_path))
+# model = diffusion_net.layers.DiffusionNet(C_in=C_in,
+#                                           C_out=n_class,
+#                                           C_width=128, 
+#                                           N_block=4, 
+#                                           last_activation=lambda x : torch.nn.functional.log_softmax(x,dim=-1),
+#                                           outputs_at='faces', 
+#                                           dropout=True)
 
 
-# === Optimize
-optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+# model = model.to(device)
 
-def train_epoch(epoch):
-
-    # Implement lr decay
-    if epoch > 0 and epoch % decay_every == 0:
-        global lr 
-        lr *= decay_rate
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr 
+# if not train:
+#     # load the pretrained model
+#     print("Loading pretrained model from: " + str(pretrain_path))
+#     model.load_state_dict(torch.load(pretrain_path))
 
 
-    # Set model to 'train' mode
-    model.train()
-    optimizer.zero_grad()
+# # === Optimize
+# optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+# def train_epoch(epoch):
+
+#     # Implement lr decay
+#     if epoch > 0 and epoch % decay_every == 0:
+#         global lr 
+#         lr *= decay_rate
+#         for param_group in optimizer.param_groups:
+#             param_group['lr'] = lr 
+
+
+#     # Set model to 'train' mode
+#     model.train()
+#     optimizer.zero_grad()
     
-    correct = 0
-    total_num = 0
-    for data in tqdm(train_loader):
+#     correct = 0
+#     total_num = 0
+#     for data in tqdm(train_loader):
 
-        # Get data
-        verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels = data
+#         # Get data
+#         verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels = data
 
-        # Move to device
-        verts = verts.to(device)
-        faces = faces.to(device)
-        frames = frames.to(device)
-        mass = mass.to(device)
-        L = L.to(device)
-        evals = evals.to(device)
-        evecs = evecs.to(device)
-        gradX = gradX.to(device)
-        gradY = gradY.to(device)
-        labels = labels.to(device)
+#         # Move to device
+#         verts = verts.to(device)
+#         faces = faces.to(device)
+#         frames = frames.to(device)
+#         mass = mass.to(device)
+#         L = L.to(device)
+#         evals = evals.to(device)
+#         evecs = evecs.to(device)
+#         gradX = gradX.to(device)
+#         gradY = gradY.to(device)
+#         labels = labels.to(device)
         
-        # Randomly rotate positions
-        if augment_random_rotate:
-            verts = diffusion_net.utils.random_rotate_points(verts)
+#         # Randomly rotate positions
+#         if augment_random_rotate:
+#             verts = diffusion_net.utils.random_rotate_points(verts)
 
-        # Construct features
-        if input_features == 'xyz':
-            features = verts
-        elif input_features == 'hks':
-            features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+#         # Construct features
+#         if input_features == 'xyz':
+#             features = verts
+#         elif input_features == 'hks':
+#             features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 
-        # Apply the model
-        preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY, faces=faces)
-
-        # Evaluate loss
-        loss = torch.nn.functional.nll_loss(preds, labels)
-        loss.backward()
+#         # Apply the model
+#         preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY, faces=faces)
+#         preds = preds.type(torch.FloatTensor)
+#         labels = labels.type(torch.LongTensor)
+#         # Evaluate loss
+#         loss = torch.nn.functional.nll_loss(preds, labels)
+#         loss.backward()
         
-        # track accuracy
-        pred_labels = torch.max(preds, dim=1).indices
-        this_correct = pred_labels.eq(labels).sum().item()
-        this_num = labels.shape[0]
-        correct += this_correct
-        total_num += this_num
+#         # track accuracy
+#         pred_labels = torch.max(preds, dim=1).indices
+#         this_correct = pred_labels.eq(labels).sum().item()
+#         this_num = labels.shape[0]
+#         correct += this_correct
+#         total_num += this_num
 
-        # Step the optimizer
-        optimizer.step()
-        optimizer.zero_grad()
+#         # Step the optimizer
+#         optimizer.step()
+#         optimizer.zero_grad()
 
-    train_acc = correct / total_num
-    return train_acc
+#     train_acc = correct / total_num
+#     return train_acc
 
 
-# Do an evaluation pass on the test dataset 
-def test():
+# # Do an evaluation pass on the test dataset 
+# def test():
     
-    model.eval()
+#     model.eval()
     
-    correct = 0
-    total_num = 0
-    with torch.no_grad():
+#     correct = 0
+#     total_num = 0
+#     with torch.no_grad():
     
-        for data in tqdm(test_loader):
+#         for data in tqdm(test_loader):
 
-            # Get data
-            verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels = data
+#             # Get data
+#             verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels = data
 
-            # Move to device
-            verts = verts.to(device)
-            faces = faces.to(device)
-            frames = frames.to(device)
-            mass = mass.to(device)
-            L = L.to(device)
-            evals = evals.to(device)
-            evecs = evecs.to(device)
-            gradX = gradX.to(device)
-            gradY = gradY.to(device)
-            labels = labels.to(device)
+#             # Move to device
+#             verts = verts.to(device)
+#             faces = faces.to(device)
+#             frames = frames.to(device)
+#             mass = mass.to(device)
+#             L = L.to(device)
+#             evals = evals.to(device)
+#             evecs = evecs.to(device)
+#             gradX = gradX.to(device)
+#             gradY = gradY.to(device)
+#             labels = labels.to(device)
             
-            # Construct features
-            if input_features == 'xyz':
-                features = verts
-            elif input_features == 'hks':
-                features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
+#             # Construct features
+#             if input_features == 'xyz':
+#                 features = verts
+#             elif input_features == 'hks':
+#                 features = diffusion_net.geometry.compute_hks_autoscale(evals, evecs, 16)
 
-            # Apply the model
-            preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY, faces=faces)
+#             # Apply the model
+#             preds = model(features, mass, L=L, evals=evals, evecs=evecs, gradX=gradX, gradY=gradY, faces=faces)
 
-            # track accuracy
-            pred_labels = torch.max(preds, dim=1).indices
-            this_correct = pred_labels.eq(labels).sum().item()
-            this_num = labels.shape[0]
-            correct += this_correct
-            total_num += this_num
+#             # track accuracy
+#             pred_labels = torch.max(preds, dim=1).indices
+#             this_correct = pred_labels.eq(labels).sum().item()
+#             this_num = labels.shape[0]
+#             correct += this_correct
+#             total_num += this_num
 
-    test_acc = correct / total_num
-    return test_acc 
-
-
-if train:
-    print("Training...")
-
-    for epoch in range(n_epoch):
-        train_acc = train_epoch(epoch)
-        test_acc = test()
-        print("Epoch {} - Train overall: {:06.3f}%  Test overall: {:06.3f}%".format(epoch, 100*train_acc, 100*test_acc))
-
-    print(" ==> saving last model to " + model_save_path)
-    torch.save(model.state_dict(), model_save_path)
+#     test_acc = correct / total_num
+#     return test_acc 
 
 
-# Test
-test_acc = test()
-print("Overall test accuracy: {:06.3f}%".format(100*test_acc))
+# if train:
+#     print("Training...")
+
+#     for epoch in range(n_epoch):
+#         train_acc = train_epoch(epoch)
+#         test_acc = test()
+#         print("Epoch {} - Train overall: {:06.3f}%  Test overall: {:06.3f}%".format(epoch, 100*train_acc, 100*test_acc))
+
+#     print(" ==> saving last model to " + model_save_path)
+#     torch.save(model.state_dict(), model_save_path)
+
+
+# # Test
+# test_acc = test()
+# print("Overall test accuracy: {:06.3f}%".format(100*test_acc))

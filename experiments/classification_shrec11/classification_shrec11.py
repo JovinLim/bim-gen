@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../src/"))  # add the path to the DiffusionNet src
 import diffusion_net
-from shrec11_dataset import Shrec11MeshDataset_Simplified, Shrec11MeshDataset_Original
+from shrec11_dataset import Shrec11MeshDataset_Simplified, Shrec11MeshDataset_Original, TestMeshDataset_Simplified
 
 
 # === Options
@@ -18,6 +18,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--input_features", type=str, help="what features to use as input ('xyz' or 'hks') default: hks", default = 'hks')
 parser.add_argument("--dataset_type", type=str, help="which variant of the dataset to use ('original', or 'simplified') default: original", default = 'original')
 parser.add_argument("--split_size", type=int, help="how large of a training set per-class default: 10", default=10)
+parser.add_argument("--save_model", type=bool, help="save model state_dict default: False", default=False)
+parser.add_argument("--load_model", type=bool, help="load model state_dict default: False", default=False)
+parser.add_argument("--mode", type=str, help="train model or test model default: test", default='test')
 args = parser.parse_args()
 
 # system things
@@ -32,7 +35,8 @@ input_features = args.input_features # one of ['xyz', 'hks']
 k_eig = 128
 
 # training settings
-n_epoch = 200
+# n_epoch = 200
+n_epoch = 1
 lr = 1e-3
 decay_every = 50
 decay_rate = 0.5
@@ -48,20 +52,23 @@ if args.dataset_type == "simplified":
     dataset_path = os.path.join(base_path, "data/simplified")
 elif args.dataset_type == "original":
     dataset_path = os.path.join(base_path, "data/original")
+elif args.dataset_type == "test":
+    dataset_path = os.path.join(base_path, "data/test")
 else:
     raise ValueError("Unrecognized dataset type")
 
 
 # === Load datasets
 
-# Train dataset
-if args.dataset_type == "simplified":
-    train_dataset = Shrec11MeshDataset_Simplified(dataset_path, split_size=args.split_size,
-                                                  k_eig=k_eig, op_cache_dir=op_cache_dir)
-elif args.dataset_type == "original":
-    train_dataset = Shrec11MeshDataset_Original(dataset_path, split_size=args.split_size,
-                                                  k_eig=k_eig, op_cache_dir=op_cache_dir)
-train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
+if args.mode == 'train':
+    # Train dataset
+    if args.dataset_type == "simplified":
+        train_dataset = Shrec11MeshDataset_Simplified(dataset_path, split_size=args.split_size,
+                                                    k_eig=k_eig, op_cache_dir=op_cache_dir)
+    elif args.dataset_type == "original":
+        train_dataset = Shrec11MeshDataset_Original(dataset_path, split_size=args.split_size,
+                                                    k_eig=k_eig, op_cache_dir=op_cache_dir)
+    train_loader = DataLoader(train_dataset, batch_size=None, shuffle=True)
 
 # Test dataset
 if args.dataset_type == "simplified":
@@ -72,24 +79,43 @@ elif args.dataset_type == "original":
     test_dataset = Shrec11MeshDataset_Original(dataset_path, split_size=None,
                                                  k_eig=k_eig, op_cache_dir=op_cache_dir,
                                                  exclude_dict=train_dataset.entries)
+    
+elif args.dataset_type == "test":
+    test_dataset = TestMeshDataset_Simplified(dataset_path, split_size=None,
+                                                 k_eig=k_eig, op_cache_dir=op_cache_dir,
+                                                 exclude_dict=None)
+    
 test_loader = DataLoader(test_dataset, batch_size=None)
 
 
 
-
+# model dir
+model_dir = 'model'
+if not os.path.exists(model_dir):
+    os.makedirs(model_dir, exist_ok=True)
 
 # === Create the model
 
+
 C_in={'xyz':3, 'hks':16}[input_features] # dimension of input features
-
 model = diffusion_net.layers.DiffusionNet(C_in=C_in,
-                                          C_out=n_class,
-                                          C_width=64, 
-                                          N_block=4, 
-                                          last_activation=lambda x : torch.nn.functional.log_softmax(x,dim=-1),
-                                          outputs_at='global_mean', 
-                                          dropout=False)
+                                        C_out=n_class,
+                                        C_width=64, 
+                                        N_block=4, 
+                                        last_activation=lambda x : torch.nn.functional.log_softmax(x,dim=-1),
+                                        outputs_at='global_mean', 
+                                        dropout=False)
+if args.load_model:
+    model_path = os.path.join(model_dir, 'diffusionnet_model.pth')
 
+    # Check if the model path exists
+    if os.path.exists(model_path):
+        print("Loading model...")
+        model.load_state_dict(torch.load(model_path))
+        print(model.state_dict())
+        model.eval()
+    else:
+        print("Model file does not exist. Continuing without loading.")
 
 model = model.to(device)
 
@@ -168,9 +194,9 @@ def test():
     correct = 0
     total_num = 0
     with torch.no_grad():
-    
+        
         for data in tqdm(test_loader):
-
+            
             # Get data
             verts, faces, frames, mass, L, evals, evecs, gradX, gradY, labels = data
 
@@ -197,21 +223,26 @@ def test():
 
             # track accuracy
             pred_labels = torch.max(preds, dim=-1).indices
+            # print(pred_labels)
             this_correct = pred_labels.eq(labels).sum().item()
             correct += this_correct
             total_num += 1
+            print(total_num)
 
     test_acc = correct / total_num
     return test_acc 
 
 
-print("Training...")
+# print("Training...")
 
-for epoch in range(n_epoch):
-    train_acc = train_epoch(epoch)
-    test_acc = test()
-    print("Epoch {} - Train overall: {:06.3f}%  Test overall: {:06.3f}%".format(epoch, 100*train_acc, 100*test_acc))
+# for epoch in range(n_epoch):
+#     train_acc = train_epoch(epoch)
+#     test_acc = test()
+#     print("Epoch {} - Train overall: {:06.3f}%  Test overall: {:06.3f}%".format(epoch, 100*train_acc, 100*test_acc))
 
 # Test
+print('Testing...')
 test_acc = test()
+if args.save_model:
+    torch.save(model.state_dict(), os.path.join(model_dir, 'diffusionnet_model.pth'))
 print("Overall test accuracy: {:06.3f}%".format(100*test_acc))

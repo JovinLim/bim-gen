@@ -52,45 +52,46 @@ class HumanSegOrigDataset(Dataset):
 
         # Train test split
         if self.train:
-    
             # adobe
-            mesh_dirpath = os.path.join(self.root_dir, "meshes", "train", "adobe")
-            label_dirpath = os.path.join(self.root_dir, "segs", "train", "adobe")
+            mesh_dirpath = os.path.join(self.root_dir, "meshes_copy", "train", "adobe")
+            label_dirpath = os.path.join(self.root_dir, "segs_copy", "train", "adobe")
+            # print ("mesh_dirpath : {}".format(mesh_dirpath))
+            # print ("label_dirpath : {}".format(label_dirpath))
             for fname in os.listdir(mesh_dirpath):
                 mesh_fullpath = os.path.join(mesh_dirpath, fname)
                 label_fullpath = os.path.join(label_dirpath, fname[:-4] + ".txt")
                 mesh_files.append(mesh_fullpath)
                 label_files.append(label_fullpath)
             
-            # faust
-            mesh_dirpath = os.path.join(self.root_dir, "meshes", "train", "faust")
-            label_dirpath = os.path.join(self.root_dir, "segs", "train", "faust")
-            for fname in os.listdir(mesh_dirpath):
-                mesh_fullpath = os.path.join(mesh_dirpath, fname)
-                label_fullpath = os.path.join(label_dirpath, "faust_corrected.txt")
-                mesh_files.append(mesh_fullpath)
-                label_files.append(label_fullpath)
+            # # faust
+            # mesh_dirpath = os.path.join(self.root_dir, "meshes", "train", "faust")
+            # label_dirpath = os.path.join(self.root_dir, "segs", "train", "faust")
+            # for fname in os.listdir(mesh_dirpath):
+            #     mesh_fullpath = os.path.join(mesh_dirpath, fname)
+            #     label_fullpath = os.path.join(label_dirpath, "faust_corrected.txt")
+            #     mesh_files.append(mesh_fullpath)
+            #     label_files.append(label_fullpath)
             
-            # mit
-            mesh_dirpath_patt = os.path.join(self.root_dir, "meshes", "train", "MIT_animation", "meshes_{}", "meshes")
-            label_dirpath = os.path.join(self.root_dir, "segs", "train", "mit")
-            pose_names = ['bouncing','handstand','march1','squat1', 'crane','jumping', 'march2', 'squat2']
-            for pose in pose_names:
-                mesh_dirpath = mesh_dirpath_patt.format(pose)
-                for fname in os.listdir(mesh_dirpath):
-                    mesh_fullpath = os.path.join(mesh_dirpath, fname)
-                    label_fullpath = os.path.join(label_dirpath, "mit_{}_corrected.txt".format(pose))
-                    mesh_files.append(mesh_fullpath)
-                    label_files.append(label_fullpath)
+            # # mit
+            # mesh_dirpath_patt = os.path.join(self.root_dir, "meshes", "train", "MIT_animation", "meshes_{}", "meshes")
+            # label_dirpath = os.path.join(self.root_dir, "segs", "train", "mit")
+            # pose_names = ['bouncing','handstand','march1','squat1', 'crane','jumping', 'march2', 'squat2']
+            # for pose in pose_names:
+            #     mesh_dirpath = mesh_dirpath_patt.format(pose)
+            #     for fname in os.listdir(mesh_dirpath):
+            #         mesh_fullpath = os.path.join(mesh_dirpath, fname)
+            #         label_fullpath = os.path.join(label_dirpath, "mit_{}_corrected.txt".format(pose))
+            #         mesh_files.append(mesh_fullpath)
+            #         label_files.append(label_fullpath)
             
-            # scape
-            mesh_dirpath = os.path.join(self.root_dir, "meshes", "train", "scape")
-            label_dirpath = os.path.join(self.root_dir, "segs", "train", "scape")
-            for fname in os.listdir(mesh_dirpath):
-                mesh_fullpath = os.path.join(mesh_dirpath, fname)
-                label_fullpath = os.path.join(label_dirpath, "scape_corrected.txt")
-                mesh_files.append(mesh_fullpath)
-                label_files.append(label_fullpath)
+            # # scape
+            # mesh_dirpath = os.path.join(self.root_dir, "meshes", "train", "scape")
+            # label_dirpath = os.path.join(self.root_dir, "segs", "train", "scape")
+            # for fname in os.listdir(mesh_dirpath):
+            #     mesh_fullpath = os.path.join(mesh_dirpath, fname)
+            #     label_fullpath = os.path.join(label_dirpath, "scape_corrected.txt")
+            #     mesh_files.append(mesh_fullpath)
+            #     label_files.append(label_fullpath)
             
         else:
 
