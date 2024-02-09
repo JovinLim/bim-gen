@@ -1,0 +1,10 @@
+## Semantic Descriptive Proportion Set for bim-gen proportion classification ##
+
+Uniform
+Linear
+Planar
+Volumetric
+Hierarchical
+Dynamic
+Asymmetrical
+Fractal

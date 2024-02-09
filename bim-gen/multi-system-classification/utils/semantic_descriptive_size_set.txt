@@ -1,0 +1,12 @@
+## Semantic Descriptive Size Set for bim-gen size classification ##
+
+Handheld
+Portable
+Human-Sized
+Room-Sized
+Home-Sized
+Building-Sized
+Neighborhood-Sized
+City-Sized
+Regional-Sized
+Continental

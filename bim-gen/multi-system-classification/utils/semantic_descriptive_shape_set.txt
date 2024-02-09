@@ -1,0 +1,13 @@
+## Semantic Descriptive Shape Set for bim-gen shape classification ##
+
+Rectangular Prism
+Prismatoid
+Spiral
+Hollow
+Cylindrical
+Spherical
+Conical
+Ellipsoidal
+Concave
+Irregular
+Organic
