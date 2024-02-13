@@ -50,12 +50,12 @@ except FileNotFoundError:
 except Exception as e:
     print(f"An error occurred: {e}")
 
-class_names = [ 'alien', 'ants', 'armadillo', 'bird1', 'bird2', 'camel', 'cat', 'centaur', 'dinosaur', 'dino_ske',           
-                            'dog1', 'dog2', 'flamingo', 'glasses', 'gorilla', 'hand', 'horse', 'lamp', 'laptop', 'man',                 
-                            'myScissor', 'octopus', 'pliers', 'rabbit', 'santa', 'shark', 'snake', 'spiders', 'two_balls', 'woman']  
+# class_names = [ 'alien', 'ants', 'armadillo', 'bird1', 'bird2', 'camel', 'cat', 'centaur', 'dinosaur', 'dino_ske',           
+#                             'dog1', 'dog2', 'flamingo', 'glasses', 'gorilla', 'hand', 'horse', 'lamp', 'laptop', 'man',                 
+#                             'myScissor', 'octopus', 'pliers', 'rabbit', 'santa', 'shark', 'snake', 'spiders', 'two_balls', 'woman']  
 
 # problem/dataset things
-n_class = 30
+n_class = len(class_names)
 
 # model 
 input_features = args.input_features # one of ['xyz', 'hks']
@@ -108,9 +108,8 @@ elif args.dataset_type == "original":
                                                  exclude_dict=train_dataset.entries)
     
 elif args.dataset_type == "test":
-    test_dataset = TestMeshDataset_Simplified(dataset_path, split_size=None,
-                                                 k_eig=k_eig, op_cache_dir=op_cache_dir,
-                                                 exclude_dict=None)
+    test_dataset = TestMeshDataset_Simplified(dataset_path, split_size=None, class_names=class_names,
+                                                 k_eig=k_eig, op_cache_dir=op_cache_dir)
     
 test_loader = DataLoader(test_dataset, batch_size=None)
 
@@ -256,6 +255,7 @@ def test():
             # print("Pred Labels: ",pred_labels)
             # print("Preds : ",preds)
             # print("Labels: ",labels)
+            print ("------------------------Results------------------------")
             print("Predicted Label: ", class_names[pred_labels.item()])
             print("Embedding: ", embedding)
             print("Embedding Shape: ", embedding.shape)

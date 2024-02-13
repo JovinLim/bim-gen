@@ -1,6 +1,6 @@
 ## Semantic Descriptive Shape Set for bim-gen shape classification ##
 
-Rectangular Prism
+Cuboid
 Prismatoid
 Spiral
 Hollow
